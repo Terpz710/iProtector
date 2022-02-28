@@ -172,7 +172,7 @@ class Main extends PluginBase implements Listener{
 					$area = $this->areas[strtolower($args[1])];
 					if($area !== null && $area->isWhitelisted($playerName)){
 						$levelName = $area->getWorldName();
-						if(isset($levelName) && Server::getInstance()->loadLevel($levelName) != false){
+						if($levelName !== null && Server::getInstance()->getWorldManager()->loadWorld($levelName) !== false){
 							$o = TextFormat::GREEN . "You are teleporting to Area " . $args[1];
 							$sender->teleport(new Position($area->getFirstPosition()->getX(), $area->getFirstPosition()->getY() + 0.5, $area->getFirstPosition()->getZ(), $area->getWorld()));
 						}else{
@@ -249,7 +249,7 @@ class Main extends PluginBase implements Listener{
 							$action = strtolower($args[2]);
 							switch($action){
 								case "add":
-									$w = ($this->getServer()->getPlayer($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayer($args[3])->getName()) : strtolower($args[3]));
+									$w = ($this->getServer()->getPlayerByPrefix($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayerByPrefix($args[3])->getName()) : strtolower($args[3]));
 									if(!$area->isWhitelisted($w)){
 										$area->setWhitelisted($w);
 										$o = TextFormat::GREEN . "Player $w has been whitelisted in area " . $area->getName() . ".";
@@ -265,7 +265,7 @@ class Main extends PluginBase implements Listener{
 									break;
 								case "delete":
 								case "remove":
-									$w = ($this->getServer()->getPlayer($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayerByPrefix($args[3])->getName()) : strtolower($args[3]));
+									$w = ($this->getServer()->getPlayerByPrefix($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayerByPrefix($args[3])->getName()) : strtolower($args[3]));
 									if($area->isWhitelisted($w)){
 										$area->setWhitelisted($w, false);
 										$o = TextFormat::GREEN . "Player $w has been unwhitelisted in area " . $area->getName() . ".";
