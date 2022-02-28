@@ -9,7 +9,7 @@ use pocketmine\math\Vector3;
 
 class Area{
 
-	/** @var bool[] */
+	/** @var string[] */
 	public $flags;
 	/** @var string */
 	private $name;
@@ -127,9 +127,9 @@ class Area{
 	}
 
 	/**
-	 * @return null|Level
+	 * @return null|World
 	 */
-	public function getWorld() : ?Level{
+	public function getWorld() : ?World{
 		return $this->plugin->getServer()->getWorldManager()->getWorldByName($this->worldname);
 	}
 
