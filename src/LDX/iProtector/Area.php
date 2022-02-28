@@ -9,7 +9,7 @@ use pocketmine\math\Vector3;
 
 class Area{
 
-	/** @var string[] */
+	/** @var bool[] */
 	public $flags;
 	/** @var string */
 	private $name;
