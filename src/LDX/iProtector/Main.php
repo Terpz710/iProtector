@@ -400,7 +400,7 @@ class Main extends PluginBase implements Listener{
 	public function onBlockTouch(PlayerInteractEvent $event) : void{
 		$block = $event->getBlock();
 		$player = $event->getPlayer();
-		if(!$this->canTouch($player, $block)){
+		if(!$this->canTouch($player, $block->getPosition())){
 			$event->cancel();
 			return;
 		}
@@ -408,7 +408,7 @@ class Main extends PluginBase implements Listener{
 			$item = $event->getItem();
 			if($item instanceof FlintSteel){
 				$blockEdited = $block->getSide($event->getFace());
-				if(!$this->canEdit($player, $blockEdited)){
+				if(!$this->canEdit($player, $blockEdited->getPosition())){
 					$event->cancel();
 					return;
 				}
@@ -433,7 +433,7 @@ class Main extends PluginBase implements Listener{
 			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
 			$event->cancel();
 		}else{
-			if(!$this->canEdit($player, $block)){
+			if(!$this->canEdit($player, $block->getPosition())){
 				$event->cancel();
 			}
 		}
@@ -461,7 +461,7 @@ class Main extends PluginBase implements Listener{
 			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
 			$event->cancel();
 		}else{
-			if(!$this->canEdit($player, $block)){
+			if(!$this->canEdit($player, $block->getPosition())){
 				$event->cancel();
 			}
 		}
@@ -474,7 +474,7 @@ class Main extends PluginBase implements Listener{
 	public function onBucket(PlayerBucketEvent $event) : void{
 		$block = $event->getBlockClicked();
 		$player = $event->getPlayer();
-		if(!$this->canEdit($player, $block)){
+		if(!$this->canEdit($player, $block->getPosition())){
 			$event->cancel();
 		}
 	}
