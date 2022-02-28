@@ -57,7 +57,7 @@ class Area{
 	}
 
 	/**
-	 * @return string[]
+	 * @return bool[]
 	 */
 	public function getFlags() : array{
 		return $this->flags;
