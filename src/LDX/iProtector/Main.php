@@ -13,9 +13,9 @@ use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerBucketEvent;
-use pocketmine\level\Position;
+use pocketmine\world\Position;
 use pocketmine\math\Vector3;
-use pocketmine\Player;
+use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
 use pocketmine\Server;
@@ -48,7 +48,7 @@ class Main extends PluginBase implements Listener{
 	public function onEnable() : void{
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		if(!is_dir($this->getDataFolder())){
-			mkdir($this->getDataFolder());
+			@mkdir($this->getDataFolder());
 		}
 		if(!file_exists($this->getDataFolder() . "areas.json")){
 			file_put_contents($this->getDataFolder() . "areas.json", "[]");
@@ -57,11 +57,11 @@ class Main extends PluginBase implements Listener{
 			$c = $this->getResource("config.yml");
 			$o = stream_get_contents($c);
 			fclose($c);
-			file_put_contents($this->getDataFolder() . "config.yml", str_replace("DEFAULT", $this->getServer()->getDefaultLevel()->getName(), $o));
+			file_put_contents($this->getDataFolder() . "config.yml", str_replace("DEFAULT", $this->getServer()->getWorldManager()->getDefaultWorld()->getDisplayName(), $o));
 		}
 		$data = json_decode(file_get_contents($this->getDataFolder() . "areas.json"), true);
 		foreach($data as $datum){
-			new Area($datum["name"], $datum["flags"], new Vector3($datum["pos1"]["0"], $datum["pos1"]["1"], $datum["pos1"]["2"]), new Vector3($datum["pos2"]["0"], $datum["pos2"]["1"], $datum["pos2"]["2"]), $datum["level"], $datum["whitelist"], $this);
+			new Area($datum["name"], $datum["flags"], new Vector3(floatval($datum["pos1"]["0"]), floatval($datum["pos1"]["1"]), floatval($datum["pos1"]["2"])), new Vector3(floatval($datum["pos2"]["0"]), floatval($datum["pos2"]["1"]), floatval($datum["pos2"]["2"])), $datum["level"], $datum["whitelist"], $this);
 		}
 		$c = yaml_parse_file($this->getDataFolder() . "config.yml");
 
@@ -117,7 +117,7 @@ class Main extends PluginBase implements Listener{
 					if(isset($args[1])){
 						if(isset($this->firstPosition[$playerName], $this->secondPosition[$playerName])){
 							if(!isset($this->areas[strtolower($args[1])])){
-								new Area(strtolower($args[1]), ["edit" => true, "god" => false, "touch" => true], $this->firstPosition[$playerName], $this->secondPosition[$playerName], $sender->getLevel()->getName(), [$playerName], $this);
+								new Area(strtolower($args[1]), ["edit" => true, "god" => false, "touch" => true], $this->firstPosition[$playerName], $this->secondPosition[$playerName], $sender->getWorld()->getDisplayName(), [$playerName], $this);
 								$this->saveAreas();
 								unset($this->firstPosition[$playerName], $this->secondPosition[$playerName]);
 								$o = TextFormat::AQUA . "Area created!";
@@ -153,7 +153,7 @@ class Main extends PluginBase implements Listener{
 				if($sender->hasPermission("iprotector") || $sender->hasPermission("iprotector.command") || $sender->hasPermission("iprotector.command.area") || $sender->hasPermission("iprotector.command.area.here")){
 					$o = "";
 					foreach($this->areas as $area){
-						if($area->contains($sender->getPosition(), $sender->getLevel()->getName()) && $area->getWhitelist() !== null){
+						if($area->contains($sender->getPosition(), $sender->getWorld()->getDisplayName()) && $area->getWhitelist() !== null){
 							$o .= TextFormat::AQUA . "Area " . $area->getName() . " can be edited by " . implode(", ", $area->getWhitelist());
 							break;
 						}
@@ -171,10 +171,10 @@ class Main extends PluginBase implements Listener{
 				if($sender->hasPermission("iprotector") || $sender->hasPermission("iprotector.command") || $sender->hasPermission("iprotector.command.area") || $sender->hasPermission("iprotector.command.area.tp")){
 					$area = $this->areas[strtolower($args[1])];
 					if($area !== null && $area->isWhitelisted($playerName)){
-						$levelName = $area->getLevelName();
-						if(isset($levelName) && Server::getInstance()->loadLevel($levelName) != false){
+						$levelName = $area->getWorldName();
+						if($levelName !== null && Server::getInstance()->getWorldManager()->loadWorld($levelName) !== false){
 							$o = TextFormat::GREEN . "You are teleporting to Area " . $args[1];
-							$sender->teleport(new Position($area->getFirstPosition()->getX(), $area->getFirstPosition()->getY() + 0.5, $area->getFirstPosition()->getZ(), $area->getLevel()));
+							$sender->teleport(new Position($area->getFirstPosition()->getX(), $area->getFirstPosition()->getY() + 0.5, $area->getFirstPosition()->getZ(), $area->getWorld()));
 						}else{
 							$o = TextFormat::RED . "The level " . $levelName . " for Area ". $args[1] ." cannot be found";
 						}
@@ -249,7 +249,7 @@ class Main extends PluginBase implements Listener{
 							$action = strtolower($args[2]);
 							switch($action){
 								case "add":
-									$w = ($this->getServer()->getPlayer($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayer($args[3])->getName()) : strtolower($args[3]));
+									$w = ($this->getServer()->getPlayerByPrefix($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayerByPrefix($args[3])->getName()) : strtolower($args[3]));
 									if(!$area->isWhitelisted($w)){
 										$area->setWhitelisted($w);
 										$o = TextFormat::GREEN . "Player $w has been whitelisted in area " . $area->getName() . ".";
@@ -265,7 +265,7 @@ class Main extends PluginBase implements Listener{
 									break;
 								case "delete":
 								case "remove":
-									$w = ($this->getServer()->getPlayer($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayer($args[3])->getName()) : strtolower($args[3]));
+									$w = ($this->getServer()->getPlayerByPrefix($args[3]) instanceof Player ? strtolower($this->getServer()->getPlayerByPrefix($args[3])->getName()) : strtolower($args[3]));
 									if($area->isWhitelisted($w)){
 										$area->setWhitelisted($w, false);
 										$o = TextFormat::GREEN . "Player $w has been unwhitelisted in area " . $area->getName() . ".";
@@ -298,7 +298,7 @@ class Main extends PluginBase implements Listener{
 	public function saveAreas() : void{
 		$areas = [];
 		foreach($this->areas as $area){
-			$areas[] = ["name" => $area->getName(), "flags" => $area->getFlags(), "pos1" => [$area->getFirstPosition()->getFloorX(), $area->getFirstPosition()->getFloorY(), $area->getFirstPosition()->getFloorZ()] , "pos2" => [$area->getSecondPosition()->getFloorX(), $area->getSecondPosition()->getFloorY(), $area->getSecondPosition()->getFloorZ()], "level" => $area->getLevelName(), "whitelist" => $area->getWhitelist()];
+			$areas[] = ["name" => $area->getName(), "flags" => $area->getFlags(), "pos1" => [$area->getFirstPosition()->getFloorX(), $area->getFirstPosition()->getFloorY(), $area->getFirstPosition()->getFloorZ()] , "pos2" => [$area->getSecondPosition()->getFloorX(), $area->getSecondPosition()->getFloorY(), $area->getSecondPosition()->getFloorZ()], "level" => $area->getWorldName(), "whitelist" => $area->getWhitelist()];
 		}
 		file_put_contents($this->getDataFolder() . "areas.json", json_encode($areas));
 	}
@@ -310,12 +310,12 @@ class Main extends PluginBase implements Listener{
 	 */
 	public function canGetHurt(Entity $entity) : bool{
 		$o = true;
-		$default = (isset($this->levels[$entity->getLevel()->getName()]) ? $this->levels[$entity->getLevel()->getName()]["God"] : $this->god);
+		$default = (isset($this->levels[$entity->getWorld()->getDisplayName()]) ? $this->levels[$entity->getWorld()->getDisplayName()]["God"] : $this->god);
 		if($default){
 			$o = false;
 		}
 		foreach($this->areas as $area){
-			if($area->contains(new Vector3($entity->getX(), $entity->getY(), $entity->getZ()), $entity->getLevel()->getName())){
+			if($area->contains(new Vector3($entity->getPosition()->getX(), $entity->getPosition()->getY(), $entity->getPosition()->getZ()), $entity->getWorld()->getDisplayName())){
 				if($default && !$area->getFlag("god")){
 					$o = true;
 					break;
@@ -340,12 +340,12 @@ class Main extends PluginBase implements Listener{
 			return true;
 		}
 		$o = true;
-		$g = (isset($this->levels[$position->getLevel()->getName()]) ? $this->levels[$position->getLevel()->getName()]["Edit"] : $this->edit);
+		$g = (isset($this->levels[$position->getWorld()->getDisplayName()]) ? $this->levels[$position->getWorld()->getDisplayName()]["Edit"] : $this->edit);
 		if($g){
 			$o = false;
 		}
 		foreach($this->areas as $area){
-			if($area->contains($position, $position->getLevel()->getName())){
+			if($area->contains($position, $position->getWorld()->getDisplayName())){
 				if($area->getFlag("edit")){
 					$o = false;
 				}
@@ -374,12 +374,12 @@ class Main extends PluginBase implements Listener{
 			return true;
 		}
 		$o = true;
-		$default = (isset($this->levels[$position->getLevel()->getName()]) ? $this->levels[$position->getLevel()->getName()]["Touch"] : $this->touch);
+		$default = (isset($this->levels[$position->getWorld()->getDisplayName()]) ? $this->levels[$position->getWorld()->getDisplayName()]["Touch"] : $this->touch);
 		if($default){
 			$o = false;
 		}
 		foreach($this->areas as $area){
-			if($area->contains(new Vector3($position->getX(), $position->getY(), $position->getZ()), $position->getLevel()->getName())){
+			if($area->contains(new Vector3($position->getX(), $position->getY(), $position->getZ()), $position->getWorld()->getDisplayName())){
 				if($area->getFlag("touch")){
 					$o = false;
 				}
@@ -400,16 +400,16 @@ class Main extends PluginBase implements Listener{
 	public function onBlockTouch(PlayerInteractEvent $event) : void{
 		$block = $event->getBlock();
 		$player = $event->getPlayer();
-		if(!$this->canTouch($player, $block)){
-			$event->setCancelled();
+		if(!$this->canTouch($player, $block->getPosition())){
+			$event->cancel();
 			return;
 		}
 		if($event->getAction() === PlayerInteractEvent::RIGHT_CLICK_BLOCK){
 			$item = $event->getItem();
 			if($item instanceof FlintSteel){
 				$blockEdited = $block->getSide($event->getFace());
-				if(!$this->canEdit($player, $blockEdited)){
-					$event->setCancelled();
+				if(!$this->canEdit($player, $blockEdited->getPosition())){
+					$event->cancel();
 					return;
 				}
 			}
@@ -423,18 +423,18 @@ class Main extends PluginBase implements Listener{
 		if(isset($this->selectingFirst[$playerName])){
 			unset($this->selectingFirst[$playerName]);
 
-			$this->firstPosition[$playerName] = $block->asVector3();
-			$player->sendMessage(TextFormat::GREEN . "Position 1 set to: (" . $block->getX() . ", " . $block->getY() . ", " . $block->getZ() . ")");
-			$event->setCancelled();
+			$this->firstPosition[$playerName] = $block->getPosition()->asVector3();
+			$player->sendMessage(TextFormat::GREEN . "Position 1 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
+			$event->cancel();
 		}elseif(isset($this->selectingSecond[$playerName])){
 			unset($this->selectingSecond[$playerName]);
 
-			$this->secondPosition[$playerName] = $block->asVector3();
-			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getX() . ", " . $block->getY() . ", " . $block->getZ() . ")");
-			$event->setCancelled();
+			$this->secondPosition[$playerName] = $block->getPosition()->asVector3();
+			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
+			$event->cancel();
 		}else{
-			if(!$this->canEdit($player, $block)){
-				$event->setCancelled();
+			if(!$this->canEdit($player, $block->getPosition())){
+				$event->cancel();
 			}
 		}
 	}
@@ -451,18 +451,18 @@ class Main extends PluginBase implements Listener{
 		if(isset($this->selectingFirst[$playerName])){
 			unset($this->selectingFirst[$playerName]);
 
-			$this->firstPosition[$playerName] = $block->asVector3();
-			$player->sendMessage(TextFormat::GREEN . "Position 1 set to: (" . $block->getX() . ", " . $block->getY() . ", " . $block->getZ() . ")");
-			$event->setCancelled();
+			$this->firstPosition[$playerName] = $block->getPosition()->asVector3();
+			$player->sendMessage(TextFormat::GREEN . "Position 1 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
+			$event->cancel();
 		}elseif(isset($this->selectingSecond[$playerName])){
 			unset($this->selectingSecond[$playerName]);
 
-			$this->secondPosition[$playerName] = $block->asVector3();
-			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getX() . ", " . $block->getY() . ", " . $block->getZ() . ")");
-			$event->setCancelled();
+			$this->secondPosition[$playerName] = $block->getPosition()->asVector3();
+			$player->sendMessage(TextFormat::GREEN . "Position 2 set to: (" . $block->getPosition()->getX() . ", " . $block->getPosition()->getY() . ", " . $block->getPosition()->getZ() . ")");
+			$event->cancel();
 		}else{
-			if(!$this->canEdit($player, $block)){
-				$event->setCancelled();
+			if(!$this->canEdit($player, $block->getPosition())){
+				$event->cancel();
 			}
 		}
 	}
@@ -474,8 +474,8 @@ class Main extends PluginBase implements Listener{
 	public function onBucket(PlayerBucketEvent $event) : void{
 		$block = $event->getBlockClicked();
 		$player = $event->getPlayer();
-		if(!$this->canEdit($player, $block)){
-			$event->setCancelled();
+		if(!$this->canEdit($player, $block->getPosition())){
+			$event->cancel();
 		}
 	}
 
@@ -483,9 +483,8 @@ class Main extends PluginBase implements Listener{
 		if($event->getEntity() instanceof Player){
 			$player = $event->getEntity();
 			if(!$this->canGetHurt($player)){
-				$event->setCancelled();
+				$event->cancel();
 			}
 		}
 	}
-
 }

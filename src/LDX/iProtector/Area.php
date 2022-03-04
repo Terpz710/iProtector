@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace LDX\iProtector;
 
-use pocketmine\level\Level;
+use pocketmine\world\World;
 use pocketmine\math\Vector3;
 
 class Area{
@@ -18,18 +18,18 @@ class Area{
 	/** @var Vector3 */
 	private $pos2;
 	/** @var string */
-	private $levelName;
+	private $worldname;
 	/** @var string[] */
 	private $whitelist;
 	/** @var Main */
 	private $plugin;
 
-	public function __construct(string $name, array $flags, Vector3 $pos1, Vector3 $pos2, string $levelName, array $whitelist, Main $plugin){
+	public function __construct(string $name, array $flags, Vector3 $pos1, Vector3 $pos2, string $worldname, array $whitelist, Main $plugin){
 		$this->name = strtolower($name);
 		$this->flags = $flags;
 		$this->pos1 = $pos1;
 		$this->pos2 = $pos2;
-		$this->levelName = $levelName;
+		$this->worldname = $worldname;
 		$this->whitelist = $whitelist;
 		$this->plugin = $plugin;
 		$this->save();
@@ -57,7 +57,7 @@ class Area{
 	}
 
 	/**
-	 * @return string[]
+	 * @return bool[]
 	 */
 	public function getFlags() : array{
 		return $this->flags;
@@ -95,12 +95,12 @@ class Area{
 
 	/**
 	 * @param Vector3 $pos
-	 * @param string  $levelName
+	 * @param string  $worldname
 	 *
 	 * @return bool
 	 */
-	public function contains(Vector3 $pos, string $levelName) : bool{
-		return ((min($this->pos1->getX(), $this->pos2->getX()) <= $pos->getX()) && (max($this->pos1->getX(), $this->pos2->getX()) >= $pos->getX()) && (min($this->pos1->getY(), $this->pos2->getY()) <= $pos->getY()) && (max($this->pos1->getY(), $this->pos2->getY()) >= $pos->getY()) && (min($this->pos1->getZ(), $this->pos2->getZ()) <= $pos->getZ()) && (max($this->pos1->getZ(), $this->pos2->getZ()) >= $pos->getZ()) && ($this->levelName === $levelName));
+	public function contains(Vector3 $pos, string $worldname) : bool{
+		return ((min($this->pos1->getX(), $this->pos2->getX()) <= $pos->getX()) && (max($this->pos1->getX(), $this->pos2->getX()) >= $pos->getX()) && (min($this->pos1->getY(), $this->pos2->getY()) <= $pos->getY()) && (max($this->pos1->getY(), $this->pos2->getY()) >= $pos->getY()) && (min($this->pos1->getZ(), $this->pos2->getZ()) <= $pos->getZ()) && (max($this->pos1->getZ(), $this->pos2->getZ()) >= $pos->getZ()) && ($this->worldname === $worldname));
 	}
 
 	/**
@@ -122,15 +122,15 @@ class Area{
 	/**
 	 * @return string
 	 */
-	public function getLevelName() : string{
-		return $this->levelName;
+	public function getWorldName() : string{
+		return $this->worldname;
 	}
 
 	/**
-	 * @return null|Level
+	 * @return null|World
 	 */
-	public function getLevel() : ?Level{
-		return $this->plugin->getServer()->getLevelByName($this->levelName);
+	public function getWorld() : ?World{
+		return $this->plugin->getServer()->getWorldManager()->getWorldByName($this->worldname);
 	}
 
 	/**
@@ -188,5 +188,4 @@ class Area{
 	public function save() : void{
 		$this->plugin->areas[$this->name] = $this;
 	}
-
 }
