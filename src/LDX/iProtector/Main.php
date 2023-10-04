@@ -380,7 +380,7 @@ final class Main extends PluginBase implements Listener{
 	 * @handleCancelled false
 	 */
 	public function onBlockBreak(BlockBreakEvent $event) : void{
-		$block = $event->getBlock();
+		$block = $event->getBlockAgainst();
 		$player = $event->getPlayer();
 		$playerName = strtolower($player->getName());
 		if(isset($this->selectingFirst[$playerName])){
